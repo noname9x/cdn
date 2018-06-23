@@ -1,6 +1,5 @@
 'use strict'
 
-const _ = require('underscore')
 const fs = require('fs-extra')
 const concat = require('concat-stream')
 const ExifImage = require('exif').ExifImage
@@ -1109,25 +1108,25 @@ ImageHandler.prototype.sanitiseOptions = function (options) {
   // handle querystring options that came from a remote image url
   // as if the original remote url had it's own querystring then we'll
   // get an option here that starts with a ?, from where the CDN params were added
-  _.each(Object.keys(options), key => {
+  Object.keys(options).forEach(key => {
     if (key[0] === '?') {
       options[key.substring(1)] = options[key]
       delete options[key]
     }
   })
 
-  _.each(Object.keys(options), key => {
-    var settings = _.filter(IMAGE_PARAMETERS, setting => {
-      return setting.name === key || _.contains(setting.aliases, key)
+  Object.keys(options).forEach(key => {
+    let settings = IMAGE_PARAMETERS.filter(setting => {
+      return setting.name === key || setting.aliases.includes(key)
     })
 
     if (settings && settings[0]) {
-      var value = options[key]
+      let value = options[key]
 
       if (options[key] !== '0' || settings[0].allowZero || settings[0].default) {
         if (options[key] !== '0' || settings[0].allowZero) {
           if (settings[0].lowercase) value = value.toLowerCase()
-          value = _.isFinite(value) ? parseFloat(value) : value
+          value = isNaN(value) ? value : Number.parseFloat(value)
           if (settings[0].minimumValue && value < settings[0].minimumValue) {
             value = settings[0].minimumValue
           } else if (settings[0].maximumValue && value > settings[0].maximumValue) {
@@ -1144,18 +1143,18 @@ ImageHandler.prototype.sanitiseOptions = function (options) {
   })
 
   // ensure we have defaults for options not specified
-  var defaults = _.filter(IMAGE_PARAMETERS, setting => {
+  let defaults = IMAGE_PARAMETERS.filter(setting => {
     return setting.default
   })
 
-  _.each(defaults, setting => {
+  defaults.forEach(setting => {
     if (typeof imageOptions[setting.name] === 'undefined') {
       imageOptions[setting.name] = setting.default
     }
   })
 
   // add any URL parameters that aren't part of the core set
-  _.extend(imageOptions, options)
+  imageOptions = Object.assign({}, imageOptions, options)
 
   return imageOptions
 }
@@ -1166,7 +1165,7 @@ ImageHandler.prototype.setBaseUrl = function (baseUrl) {
 
 function getColours (buffer, options) {
   return new Promise((resolve, reject) => {
-    var v = new Vibrant(buffer, options)
+    let v = new Vibrant(buffer, options)
 
     v.getSwatches((err, swatches) => {
       if (err) {
@@ -1174,9 +1173,15 @@ function getColours (buffer, options) {
       }
 
       // remove empty swatches and sort by population descending
-      swatches = _.compact(_.sortBy(swatches, 'population')).reverse()
+      swatches = Object.values(swatches)
 
-      var colourData = {
+      // swatches = swatches.filter(Boolean)
+      swatches.sort((a, b) => {
+        if (a.population === b.population) return 0
+        return a.population > b.population ? -1 : 1
+      })
+
+      let colourData = {
         primaryColour: swatches[0].getHex(),
         palette: {
           rgb: [],
@@ -1184,8 +1189,8 @@ function getColours (buffer, options) {
         }
       }
 
-      _.each(swatches, (swatch, key) => {
-        if (key !== 0) {
+      swatches.forEach((swatch, index) => {
+        if (index !== 0) {
           colourData.palette.rgb.push(swatch.getRgb())
           colourData.palette.hex.push(swatch.getHex())
         }

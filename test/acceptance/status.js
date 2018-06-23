@@ -1,14 +1,10 @@
-var _ = require('underscore')
 var fs = require('fs')
-var path = require('path')
 var should = require('should')
-var sinon = require('sinon')
 var request = require('supertest')
 
-var cache = require(__dirname + '/../../dadi/lib/cache')
-var config = require(__dirname + '/../../config')
-var help = require(__dirname + '/help')
-var app = require(__dirname + '/../../dadi/lib/')
+var config = require('./../../config')
+var help = require('./help')
+var app = require('./../../dadi/lib/')
 
 var defaultConfig = {
   'status': {
@@ -26,18 +22,18 @@ var defaultConfig = {
 }
 
 function updateConfigAndReloadApp (configOverride) {
-  delete require.cache[__dirname + '/../../config']
-  config = require(__dirname + '/../../config')
+  delete require.cache['./../../config']
+  config = require('./../../config')
 
   var testConfigString = fs.readFileSync(config.configPath())
-  var newTestConfig = _.extend({}, JSON.parse(testConfigString), defaultConfig, configOverride)
+  var newTestConfig = Object.assign({}, JSON.parse(testConfigString), defaultConfig, configOverride)
 
   fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
   config.loadFile(config.configPath())
 
   // reload the app so it picks up config changes
-  delete require.cache[require.resolve(__dirname + '/../../dadi/lib')]
-  app = require(__dirname + '/../../dadi/lib')
+  delete require.cache[require.resolve('./../../dadi/lib')]
+  app = require('./../../dadi/lib')
 }
 
 describe('Status', function () {
